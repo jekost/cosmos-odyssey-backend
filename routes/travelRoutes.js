@@ -7,7 +7,23 @@ const { Sequelize } = require('sequelize');
 
 const router = express.Router();
 
+router.get('/travels', async (req, res, next) => {
+    try {
+      const travels = await Travel.findAll();
+      res.json(travels);
+    } catch (error) {
+      next(error); // Passes errors to the error-handling middleware
+    }
+  });
 
+router.get('/pricelists', async (req, res, next) => {
+    try {
+        const pricelists = await PriceList.findAll();
+        res.json(pricelists);
+    } catch (error) {
+        next(error); // Passes errors to the error-handling middleware
+    }
+});
 
 // Fetch & store travel prices from external API
 router.get('/prices', async (req, res) => {
@@ -15,77 +31,79 @@ router.get('/prices', async (req, res) => {
         const response = await axios.get(process.env.API_URL);
         const data = response.data;
 
-        // 🔍 Log the full API response for debugging
-        //console.log("🔍 API Response:", JSON.stringify(data, null, 2));
+        const oldCount = await PriceList.count();
 
-        if (!data || !data.validUntil || !data.legs) {
-            return res.status(400).json({ error: "Invalid API response" });
-        }
-
-        // 🔹 Transform API data to match database schema
-        const formattedRoutes = data.legs.flatMap(leg => 
-            leg.providers.map(provider => (
-                {
-                priceListId: data.id,
-                validUntil: data.validUntil,
-                legId: leg.id,
-                fromId: leg.routeInfo.from.id,
-                fromName: leg.routeInfo.from.name,
-                toId: leg.routeInfo.to.id,
-                toName: leg.routeInfo.to.name,
-                distance: leg.routeInfo.distance,
-                provideId: provider.id,
-                companyId: provider.company.id,
-                companyName: provider.company.name,
-                price: provider.price,
-                flightStart: provider.flightStart,
-                flightEnd: provider.flightEnd,
-                }
-            ))
+        data.legs.flatMap(leg => 
+            leg.providers.map(async provider => {
+                await Travel.upsert({
+                    priceListId: data.id,
+                    validUntil: data.validUntil,
+                    legId: leg.id,
+                    fromId: leg.routeInfo.from.id,
+                    fromName: leg.routeInfo.from.name,
+                    toId: leg.routeInfo.to.id,
+                    toName: leg.routeInfo.to.name,
+                    distance: leg.routeInfo.distance,
+                    offerId: provider.id,
+                    companyId: provider.company.id,
+                    companyName: provider.company.name,
+                    price: provider.price,
+                    flightStart: provider.flightStart,
+                    flightEnd: provider.flightEnd,
+                });
+            })
         );
 
-        // 🔹 Log transformed data for debugging
-        //console.log("🛣 Transformed Routes Data:", JSON.stringify(formattedRoutes, null, 2));
+        await PriceList.upsert({
+            validUntil: data.validUntil,
+            id: data.id
+        });
+    
 
-        // 🔹 Store only the last 15 price lists
+        const newCount = await PriceList.count();
+        const oldest = await PriceList.findOne({ order: [['createdAt', 'ASC']] });
+
+        const oldestTravels = await Travel.findAll({
+            where: {
+                priceListId: oldest.dataValues.id,
+                },
+        });
+
+        console.log("oldest is valid until:", oldest.dataValues.validUntil);
+
+        /*
+        oldestTravels.forEach(element => {
+            console.log(element.dataValues.companyId)
+        });
         const count = await PriceList.count();
         if (count >= 15) {
             const oldest = await PriceList.findOne({ order: [['createdAt', 'ASC']] });
             if (oldest) await oldest.destroy();
         }
+        */
 
-        formattedRoutes.forEach(route => {
-            Travel.upsert({
-                priceListId: route.priceListId,
-                validUntil: route.validUntil,
-                legId: route.legId,
-                fromId: route.fromId,
-                fromName: route.fromName,
-                toId: route.toId,
-                toName: route.toName,
-                distance: route.distance,
-                provideId: route.provideId,
-                companyId: route.companyId,
-                companyName: route.companyName,
-                price: route.price,
-                flightStart: route.flightStart,
-                flightEnd: route.flightEnd,
-            });
-        });
-
-        PriceList.upsert({
-            validUntil: data.validUntil,
-            id: data.id
-        });
-
-        console.log("data inserted, valid until:", data.validUntil);
+        //TODO: destroy if more than 15 PriceLists in db
 
 
-        res.json({data: formattedRoutes });
+        if (oldCount != newCount) {
+            console.log(oldCount);
+            console.log(newCount);
+
+            const oldest = await PriceList.findOne({ order: [['createdAt', 'ASC']] });
+
+            console.log("not equal, db updated");
+            //console.log(oldest);
+            
+            //if (oldest) await oldest.destroy();
+        }
+        console.log(new Date().toISOString(), "||| CRONJOB: checked");
+
+        res.json
     } catch (error) {
+
         console.error("❌ API Fetch Error:", error);
-        res.status(500).json({ error: error.message });
-    }
+        }
+        
 });
 
 

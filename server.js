@@ -3,8 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/database');
 const travelRoutes = require('./routes/travelRoutes');
-
 const app = express();
+require("./cron"); // This automatically starts the cron job
+
 app.use(express.json());
 app.use(cors());
 
@@ -12,6 +13,7 @@ app.use(cors());
 sequelize.sync()
     .then(() => console.log("Database Connected in server.js"))
     .catch(err => console.error(err));
+
 
 // API Routes
 app.use('/api', travelRoutes);
