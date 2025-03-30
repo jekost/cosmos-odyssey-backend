@@ -3,7 +3,7 @@ const axios = require('axios');
 const PriceList = require('../models/PriceList');
 const Reservation = require('../models/Reservation');
 const Travel = require('../models/Travel');
-const { Sequelize } = require('sequelize');
+const { Sequelize, Op } = require('sequelize');
 
 const router = express.Router();
 
@@ -12,9 +12,28 @@ router.get('/travels', async (req, res, next) => {
       const travels = await Travel.findAll();
       res.json(travels);
     } catch (error) {
-      next(error); // Passes errors to the error-handling middleware
+      console.error(error);
+      res.status(500).json({ error: 'Failed to fetch valid travels' });
     }
-  });
+});
+
+// Get latest stored travel prices
+router.get('/travels/valid', async (req, res) => {
+    try {
+        const validTravels = await Travel.findAll({
+            where: {
+                validUntil: { [Op.gt]: new Date() } // Only fetch PriceLists that are still valid
+            },
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json(validTravels);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch valid Travels' });
+    }
+});
+
 
 router.get('/pricelists', async (req, res, next) => {
     try {
@@ -25,92 +44,21 @@ router.get('/pricelists', async (req, res, next) => {
     }
 });
 
-// Fetch & store travel prices from external API
-router.get('/prices', async (req, res) => {
+// Get valid stored travellists
+router.get('/pricelists/valid', async (req, res) => {
     try {
-        const response = await axios.get(process.env.API_URL);
-        const data = response.data;
-
-        const oldCount = await PriceList.count();
-
-        data.legs.flatMap(leg => 
-            leg.providers.map(async provider => {
-                await Travel.upsert({
-                    priceListId: data.id,
-                    validUntil: data.validUntil,
-                    legId: leg.id,
-                    fromId: leg.routeInfo.from.id,
-                    fromName: leg.routeInfo.from.name,
-                    toId: leg.routeInfo.to.id,
-                    toName: leg.routeInfo.to.name,
-                    distance: leg.routeInfo.distance,
-                    offerId: provider.id,
-                    companyId: provider.company.id,
-                    companyName: provider.company.name,
-                    price: provider.price,
-                    flightStart: provider.flightStart,
-                    flightEnd: provider.flightEnd,
-                });
-            })
-        );
-
-        await PriceList.upsert({
-            validUntil: data.validUntil,
-            id: data.id
-        });
-    
-
-        const newCount = await PriceList.count();
-        const oldest = await PriceList.findOne({ order: [['createdAt', 'ASC']] });
-
-        const oldestTravels = await Travel.findAll({
+        const validPriceLists = await PriceList.findAll({
             where: {
-                priceListId: oldest.dataValues.id,
-                },
+                validUntil: { [Op.gt]: new Date() } // Only fetch PriceLists that are still valid
+            },
+            order: [['createdAt', 'DESC']]
         });
 
-        console.log("oldest is valid until:", oldest.dataValues.validUntil);
-
-        /*
-        oldestTravels.forEach(element => {
-            console.log(element.dataValues.companyId)
-        });
-        const count = await PriceList.count();
-        if (count >= 15) {
-            const oldest = await PriceList.findOne({ order: [['createdAt', 'ASC']] });
-            if (oldest) await oldest.destroy();
-        }
-        */
-
-        //TODO: destroy if more than 15 PriceLists in db
-
-
-        if (oldCount != newCount) {
-            console.log(oldCount);
-            console.log(newCount);
-
-            const oldest = await PriceList.findOne({ order: [['createdAt', 'ASC']] });
-
-            console.log("not equal, db updated");
-            //console.log(oldest);
-            
-            //if (oldest) await oldest.destroy();
-        }
-        console.log(new Date().toISOString(), "||| CRONJOB: checked");
-
-        res.json
+        res.json(validPriceLists);
     } catch (error) {
-
-        console.error("❌ API Fetch Error:", error);
-        }
-        
-});
-
-
-// Get latest stored travel prices
-router.get('/prices/latest', async (req, res) => {
-    const latest = await PriceList.findOne({ order: [['createdAt', 'DESC']] });
-    res.json(latest);
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch valid PriceLists' });
+    }
 });
 
 // Make a reservation

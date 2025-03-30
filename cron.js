@@ -10,10 +10,16 @@ async function fetchPrices(){
         const response = await axios.get(process.env.API_URL);
         const data = response.data;
 
-        const oldCount = await PriceList.count();
 
-        data.legs.flatMap(leg => 
-            leg.providers.map(async provider => {
+
+        await PriceList.upsert({
+            id: data.id,
+            validUntil: data.validUntil
+        });
+
+        // Create all related Travel entries and associate them with the PriceList
+        for (const leg of data.legs) {
+            for (const provider of leg.providers) {
                 await Travel.upsert({
                     priceListId: data.id,
                     validUntil: data.validUntil,
@@ -29,18 +35,15 @@ async function fetchPrices(){
                     price: provider.price,
                     flightStart: provider.flightStart,
                     flightEnd: provider.flightEnd,
+                    flightDuration: (new Date(provider.flightEnd) - new Date(provider.flightStart))
                 });
-            })
-        );
+            }
+        }
 
-        await PriceList.upsert({
-            validUntil: data.validUntil,
-            id: data.id
-        });
-    
+
 
         const newCount = await PriceList.count();
-        if (newCount> 18){
+        if (newCount> 15){
             const oldest = await PriceList.findOne({ order: [['createdAt', 'ASC']] });
             await Travel.destroy({
                 where: {
@@ -69,7 +72,7 @@ async function fetchPrices(){
 };
 
 // Schedule the task to run every 10 minutes
-cron.schedule("* * * * *", async () => {
+cron.schedule("*/10 * * * * *", async () => {
   try {
     await fetchPrices();
   } catch (error) {
