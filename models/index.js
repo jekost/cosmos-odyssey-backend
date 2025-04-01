@@ -8,6 +8,9 @@ const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
 const config = require(__dirname + '/../config/config.json')[env];
 const db = {};
+const PriceList = require('./PriceList');
+const Travel = require('./Travel');
+const Reservation = require('./Reservation');
 
 let sequelize;
 if (config.use_env_variable) {
@@ -38,7 +41,10 @@ Object.keys(db).forEach(modelName => {
   }
 });
 
+PriceList.hasMany(Travel, { foreignKey: 'priceListId', onDelete: 'CASCADE' });
+Travel.belongsTo(PriceList, { foreignKey: 'priceListId' });
+
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-module.exports = db;
+module.exports = {db, PriceList, Travel, Reservation};

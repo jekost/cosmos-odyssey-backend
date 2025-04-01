@@ -1,8 +1,5 @@
 const express = require('express');
-const axios = require('axios');
-const PriceList = require('../models/PriceList');
-const Reservation = require('../models/Reservation');
-const Travel = require('../models/Travel');
+const { PriceList, Travel, Reservation } = require('../models');
 const { Sequelize, Op } = require('sequelize');
 
 const router = express.Router();
@@ -20,16 +17,25 @@ router.get('/travels', async (req, res, next) => {
 // Get latest stored travel prices
 router.get('/travels/valid', async (req, res) => {
     try {
+        const now = new Date(); // Ensure UTC consistency
+
         const validTravels = await Travel.findAll({
-            where: {
-                validUntil: { [Op.gt]: new Date() } // Only fetch PriceLists that are still valid
-            },
-            order: [['createdAt', 'DESC']]
+            include: [
+                {
+                    model: PriceList,
+                    as: 'PriceList', // Ensure this matches the model association
+                    where: { validUntil: { [Op.gt]: now } }, // Check PriceList validity
+                    attributes: [] // Don't fetch extra PriceList fields
+                }
+            ],
+            order: [['createdAt', 'DESC']],
+            //attributes: ['id', 'name', 'priceListId'], // Fetch only necessary fields
+            limit: 50 // Optional performance improvement
         });
 
         res.json(validTravels);
     } catch (error) {
-        console.error(error);
+        console.error("Error fetching valid travels:", error);
         res.status(500).json({ error: 'Failed to fetch valid Travels' });
     }
 });
@@ -63,7 +69,7 @@ router.get('/pricelists/valid', async (req, res) => {
 
 // Make a reservation
 router.post('/reservations', async (req, res) => {
-    try {
+    /*    try {
         const { firstName, lastName, routes, totalPrice, totalTime, companyNames } = req.body;
         const newReservation = await Reservation.create({
             firstName, lastName, routes, totalPrice, totalTime, companyNames
@@ -71,7 +77,19 @@ router.post('/reservations', async (req, res) => {
         res.json(newReservation);
     } catch (error) {
         res.status(500).json({ error: error.message });
+    } */
+    try {
+        const { firstName, lastName, routes, totalPrice, totalTime, companyNames } = req.body;
+        const newReservation = await Reservation.create({
+            firstName, lastName, routes, totalPrice, totalTime, companyNames
+        });
+        const newReservation1 = "sfsdfsdfsdf";
+        res.json(newReservation1);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
+
+
 });
 
 // Get all reservations

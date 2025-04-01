@@ -1,8 +1,6 @@
 const cron = require("node-cron");
 const axios = require("axios");
-const PriceList = require('./models/PriceList');
-const Travel = require('./models/Travel');
-
+const { PriceList, Travel } = require('./models');
 
 //võtab apist hinnad ja paneb minu db-sse
 async function fetchPrices(){
@@ -18,11 +16,12 @@ async function fetchPrices(){
         });
 
         // Create all related Travel entries and associate them with the PriceList
+
         for (const leg of data.legs) {
             for (const provider of leg.providers) {
                 await Travel.upsert({
                     priceListId: data.id,
-                    validUntil: data.validUntil,
+                    //validUntil: data.validUntil,
                     legId: leg.id,
                     fromId: leg.routeInfo.from.id,
                     fromName: leg.routeInfo.from.name,
@@ -43,7 +42,7 @@ async function fetchPrices(){
 
 
         const newCount = await PriceList.count();
-        if (newCount> 15){
+        if (newCount> 16){
             const oldest = await PriceList.findOne({ order: [['createdAt', 'ASC']] });
             await Travel.destroy({
                 where: {
@@ -71,7 +70,7 @@ async function fetchPrices(){
         }
 };
 
-// Schedule the task to run every 10 minutes
+// Schedule the task to run every 10 s
 cron.schedule("*/10 * * * * *", async () => {
   try {
     await fetchPrices();
