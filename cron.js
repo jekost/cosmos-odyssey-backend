@@ -1,27 +1,45 @@
 const cron = require("node-cron");
 const axios = require("axios");
-const { PriceList, Travel } = require('./models');
+const { PriceList, Travel, Reservation } = require('./models');
 
 //võtab apist hinnad ja paneb minu db-sse
 async function fetchPrices(){
-    try {
-        const response = await axios.get(process.env.API_URL);
-        const data = response.data;
+    const cleanInvalidPriceLists = async () => {
+        try {
+            const response = await axios.get('http://localhost:5000/api/pricelists/invalid');
+            let invalidPriceLists = response.data;
 
+            if (invalidPriceLists.length > 15) {
 
-
+                
+                // Sort invalid price lists by createdAt ascending (oldest first)
+                invalidPriceLists.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                
+                // Calculate how many need to be removed to keep only 15
+                const excessCount = invalidPriceLists.length - 15;
+                const priceListsToDelete = invalidPriceLists.slice(0, excessCount);
+                
+                for (const priceList of priceListsToDelete) {
+                    await Travel.destroy({ where: { priceListId: priceList.id } });
+                    await PriceList.destroy({ where: { id: priceList.id } });
+                    await Reservation.destroy({ where: { oldestPriceListId: priceList.id } });
+                    console.log("Invalid price list deleted: ", priceList.id);
+                }
+            }
+        } catch (error) {
+            console.error("Error cleaning invalid price lists:", error);
+        }
+    };
+    const upsertApiCall = async (data) => {
         await PriceList.upsert({
             id: data.id,
             validUntil: data.validUntil
         });
 
-        // Create all related Travel entries and associate them with the PriceList
-
         for (const leg of data.legs) {
             for (const provider of leg.providers) {
                 await Travel.upsert({
                     priceListId: data.id,
-                    //validUntil: data.validUntil,
                     legId: leg.id,
                     fromId: leg.routeInfo.from.id,
                     fromName: leg.routeInfo.from.name,
@@ -40,23 +58,15 @@ async function fetchPrices(){
         }
 
 
+    }
 
-        const newCount = await PriceList.count();
-        if (newCount> 16){
-            const oldest = await PriceList.findOne({ order: [['createdAt', 'ASC']] });
-            await Travel.destroy({
-                where: {
-                    priceListId: oldest.dataValues.id,
-                    },
-            });
-            await PriceList.destroy({
-                where: {
-                    id: oldest.dataValues.id,
-                    },
-            });
-            console.log("old lines destoryed with date: ", oldest.dataValues.validUntil)
+    try {
+        const response = await axios.get(process.env.API_URL);
+        const data = response.data;
 
-        }
+
+        upsertApiCall(data);
+        cleanInvalidPriceLists();
 
         const oldest = await PriceList.findOne({ order: [['createdAt', 'ASC']] });
         const youngest = await PriceList.findOne({ order: [['createdAt', 'DESC']] });
