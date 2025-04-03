@@ -14,18 +14,18 @@ router.get('/travels', async (req, res, next) => {
     }
 });
 
-// Get travel prices whose pricelists are currently valid
+// get travel prices whose pricelists are currently valid
 router.get('/travels/valid', async (req, res) => {
     try {
-        const now = new Date(); // Ensure UTC consistency
+        const now = new Date();
 
         const validTravels = await Travel.findAll({
             include: [
                 {
                     model: PriceList,
-                    as: 'PriceList', // Ensure this matches the model association
-                    where: { validUntil: { [Op.gt]: now } }, // Check PriceList validity
-                    attributes: [] // Don't fetch extra PriceList fields
+                    as: 'PriceList',
+                    where: { validUntil: { [Op.gt]: now } },
+                    attributes: []
                 }
             ],
             order: [['createdAt', 'DESC']],
@@ -43,7 +43,7 @@ router.get('/pricelists', async (req, res, next) => {
         const pricelists = await PriceList.findAll();
         res.json(pricelists);
     } catch (error) {
-        next(error); // Passes errors to the error-handling middleware
+        next(error);
     }
 });
 
@@ -51,7 +51,7 @@ router.get('/pricelists/valid', async (req, res) => {
     try {
         const validPriceLists = await PriceList.findAll({
             where: {
-                validUntil: { [Op.gt]: new Date() } // Only fetch PriceLists that are still valid
+                validUntil: { [Op.gt]: new Date() }
             },
             order: [['createdAt', 'DESC']]
         });
@@ -67,7 +67,7 @@ router.get('/pricelists/invalid', async (req, res) => {
     try {
         const validPriceLists = await PriceList.findAll({
             where: {
-                validUntil: { [Op.lt]: new Date() } // Only fetch PriceLists that are invalid
+                validUntil: { [Op.lt]: new Date() }
             },
             order: [['createdAt', 'DESC']]
         });
@@ -79,7 +79,7 @@ router.get('/pricelists/invalid', async (req, res) => {
     }
 });
 
-// Make a reservation
+//make a reservation
 router.post('/reservations', async (req, res) => {
     try {
         const { firstName, lastName, totalPrice, totalDurationMillis, oldestPriceListId, bookings } = req.body;
@@ -103,7 +103,6 @@ router.post('/reservations', async (req, res) => {
     }
 });
 
-// Get all reservations
 router.get('/reservations', async (req, res) => {
     const reservations = await Reservation.findAll();
     res.json(reservations);
@@ -118,14 +117,12 @@ router.get('/reservations/valid', async (req, res) => {
             include: [
                 {
                     model: PriceList,
-                    as: 'PriceList', // Ensure this matches the model association
-                    where: { validUntil: { [Op.gt]: now } }, // Check PriceList validity
-                    attributes: [] // Don't fetch extra PriceList fields
+                    as: 'PriceList',
+                    where: { validUntil: { [Op.gt]: now } },
+                    attributes: []
                 }
             ],
             order: [['createdAt', 'DESC']],
-            //attributes: ['id', 'name', 'priceListId'], // Fetch only necessary fields
-            //limit: 50 // Optional performance improvement
         });
 
         res.json(validReservations);

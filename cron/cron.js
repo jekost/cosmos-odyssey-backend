@@ -57,22 +57,14 @@ async function fetchPrices(){
                 });
             }
         }
-
-
     }
 
     try {
         const response = await axios.get(process.env.API_URL);
         const data = response.data;
 
-
         upsertApiCall(data);
         cleanInvalidPriceLists();
-
-        const oldest = await PriceList.findOne({ order: [['createdAt', 'ASC']] });
-        const youngest = await PriceList.findOne({ order: [['createdAt', 'DESC']] });
-        console.log("oldest is valid until:", oldest.dataValues.validUntil);
-        console.log("youngest is valid until:", youngest.dataValues.validUntil);
 
         console.log(new Date().toISOString(), "||| CRONJOB: checked");
 
@@ -90,7 +82,7 @@ cron.schedule("* * * * *", async () => {
   }
 }, {
   scheduled: true,
-  timezone: "UTC" // Adjust based on your needs
+  timezone: "UTC"
 });
 
 console.log("Cron job scheduled: Fetching data every minute");

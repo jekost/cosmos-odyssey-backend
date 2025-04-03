@@ -4,7 +4,6 @@ const sequelize = require('../config/database');
 const Travel = sequelize.define('Travel', {
     offerId: { type: DataTypes.UUID, allowNull: false, primaryKey: true },
     priceListId: { type: DataTypes.UUID, allowNull: false },
-    //validUntil: { type: DataTypes.DATE, allowNull: false },
     legId: { type: DataTypes.STRING, allowNull: false },
     fromId: { type: DataTypes.STRING, allowNull: false },
     fromName: { type: DataTypes.STRING, allowNull: false },
