@@ -1,6 +1,6 @@
 const cron = require("node-cron");
 const axios = require("axios");
-const { PriceList, Travel, Reservation } = require('./models');
+const { PriceList, Travel, Reservation } = require('../models');
 
 //takes the prices the api and puts them in the db schemas
 async function fetchPrices(){

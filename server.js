@@ -4,7 +4,7 @@ const cors = require('cors');
 const sequelize = require('./config/database');
 const travelRoutes = require('./routes/travelRoutes');
 const app = express();
-require("./cron"); // This automatically starts the cron job
+require("./cron/cron"); // This automatically starts the cron job
 
 app.use(express.json());
 app.use(cors());
