@@ -43,6 +43,7 @@ Object.keys(db).forEach(modelName => {
 
 PriceList.hasMany(Travel, { foreignKey: 'priceListId', onDelete: 'CASCADE' });
 Travel.belongsTo(PriceList, { foreignKey: 'priceListId' });
+Reservation.belongsTo(PriceList, { foreignKey: 'oldestPriceListId' });
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;

@@ -14,7 +14,7 @@ router.get('/travels', async (req, res, next) => {
     }
 });
 
-// Get latest stored travel prices
+// Get travel prices whose pricelists are currently valid
 router.get('/travels/valid', async (req, res) => {
     try {
         const now = new Date(); // Ensure UTC consistency
@@ -29,8 +29,6 @@ router.get('/travels/valid', async (req, res) => {
                 }
             ],
             order: [['createdAt', 'DESC']],
-            //attributes: ['id', 'name', 'priceListId'], // Fetch only necessary fields
-            //limit: 50 // Optional performance improvement
         });
 
         res.json(validTravels);
@@ -49,7 +47,6 @@ router.get('/pricelists', async (req, res, next) => {
     }
 });
 
-// Get valid stored travellists
 router.get('/pricelists/valid', async (req, res) => {
     try {
         const validPriceLists = await PriceList.findAll({
@@ -70,7 +67,7 @@ router.get('/pricelists/invalid', async (req, res) => {
     try {
         const validPriceLists = await PriceList.findAll({
             where: {
-                validUntil: { [Op.lt]: new Date() } // Only fetch PriceLists that are still valid
+                validUntil: { [Op.lt]: new Date() } // Only fetch PriceLists that are invalid
             },
             order: [['createdAt', 'DESC']]
         });
@@ -112,6 +109,7 @@ router.get('/reservations', async (req, res) => {
     res.json(reservations);
 });
 
+//get all valid reservations (so every single pricelist from that reservation's all bookings are currently valid)
 router.get('/reservations/valid', async (req, res) => {
     try {
         const now = new Date(); // Ensure UTC consistency

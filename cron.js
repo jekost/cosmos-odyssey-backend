@@ -2,11 +2,12 @@ const cron = require("node-cron");
 const axios = require("axios");
 const { PriceList, Travel, Reservation } = require('./models');
 
-//võtab apist hinnad ja paneb minu db-sse
+//takes the prices the api and puts them in the db schemas
 async function fetchPrices(){
     const cleanInvalidPriceLists = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/pricelists/invalid');
+
+            const response = await axios.get(`${process.env.URL}/api/pricelists/invalid`);
             let invalidPriceLists = response.data;
 
             if (invalidPriceLists.length > 15) {
@@ -76,20 +77,20 @@ async function fetchPrices(){
         console.log(new Date().toISOString(), "||| CRONJOB: checked");
 
     } catch (error) {
-        console.error("❌ API Fetch Error:", error);
+        console.error("API Fetch Error:", error);
         }
 };
 
-// Schedule the task to run every 10 s
-cron.schedule("*/10 * * * * *", async () => {
+// Schedule the task to run every 1 minute
+cron.schedule("* * * * *", async () => {
   try {
     await fetchPrices();
   } catch (error) {
-    console.error("❌ Error in fetchPrices:", error);
+    console.error("Error in fetchPrices:", error);
   }
 }, {
   scheduled: true,
   timezone: "UTC" // Adjust based on your needs
 });
 
-console.log("🚀 Cron job scheduled: Fetching data every 10 seconds");
+console.log("Cron job scheduled: Fetching data every minute");
