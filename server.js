@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/database');
-const travelRoutes = require('./routes/travelRoutes');
+const routes = require('./routes/routes');
 const app = express();
 require("./cron/cron"); // This automatically starts the cron job
 
@@ -16,7 +16,7 @@ sequelize.sync()
 
 
 // API Routes
-app.use('/api', travelRoutes);
+app.use('/api', routes);
 
 
 // Start Server
