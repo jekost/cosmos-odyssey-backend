@@ -1,8 +1,11 @@
 const express = require('express');
 const { PriceList, Travel, Reservation } = require('../models');
+const TravelGenerator = require('../services/travelgenerator');
 const { Sequelize, Op } = require('sequelize');
 
+
 const router = express.Router();
+const generator = new TravelGenerator();
 
 router.get('/travels', async (req, res, next) => {
     try {
@@ -130,6 +133,11 @@ router.get('/reservations/valid', async (req, res) => {
         console.error("Error fetching valid travels:", error);
         res.status(500).json({ error: 'Failed to fetch valid Travels' });
     }
+});
+
+
+router.get('/generated', (req, res) => {
+    res.json(generator.generateTravels());
 });
 
 module.exports = router;
