@@ -1,5 +1,5 @@
 const express = require('express');
-const { PriceList, Travel, Reservation } = require('../models');
+const { PriceList, Travel, Reservation, Company, Leg, Planet } = require('../models');
 const TravelGenerator = require('../services/travelgenerator');
 const { Sequelize, Op } = require('sequelize');
 
@@ -8,12 +8,58 @@ const router = express.Router();
 const generator = new TravelGenerator();
 
 router.get('/travels', async (req, res, next) => {
+  try {
+    const travels = await Travel.findAll({
+      include: [
+        {
+          model: PriceList,
+          as: 'priceList', // only if you defined an alias in the association
+          required: false, // set to true if you want only travels that have a PriceList
+        },
+        {
+          model: Leg,
+          as: 'leg', // 👈 must match the alias defined in the association
+        },
+        {
+          model: Company,
+          as: 'company', // 👈 must match the alias defined above
+        },
+      ],
+    });
+    res.json(travels);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch valid travels' });
+  }
+});
+
+router.get('/legs', async (req, res, next) => {
     try {
-      const travels = await Travel.findAll();
-      res.json(travels);
+      const legs = await Leg.findAll();
+      res.json(legs);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: 'Failed to fetch valid travels' });
+      res.status(500).json({ error: 'Failed to fetch valid legs' });
+    }
+});
+
+router.get('/planets', async (req, res, next) => {
+    try {
+      const planets = await Planet.findAll();
+      res.json(planets);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Failed to fetch valid planets' });
+    }
+});
+
+router.get('/companies', async (req, res, next) => {
+    try {
+      const companies = await Company.findAll();
+      res.json(companies);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Failed to fetch valid companies' });
     }
 });
 
@@ -78,7 +124,7 @@ router.get('/pricelists/invalid', async (req, res) => {
         res.json(validPriceLists);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Failed to fetch valid PriceLists' });
+        res.status(500).json({ error: 'Failed to fetch invalid PriceLists' });
     }
 });
 

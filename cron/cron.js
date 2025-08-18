@@ -1,6 +1,6 @@
 const cron = require("node-cron");
 const axios = require("axios");
-const { PriceList, Travel, Reservation } = require('../models');
+const { PriceList, Travel, Reservation, Planet, Company, Leg } = require('../models');
 
 //takes the prices the api and puts them in the db schemas
 async function fetchPrices(){
@@ -32,24 +32,39 @@ async function fetchPrices(){
         }
     };
     const upsertApiCall = async (data) => {
+
         await PriceList.upsert({
             id: data.id,
             validUntil: data.validUntil
         });
 
         for (const leg of data.legs) {
+            await Leg.upsert({
+                id: leg.id,
+                fromId: leg.routeInfo.from.id,
+                toId: leg.routeInfo.to.id,
+                name: leg.routeInfo.from.name+"-"+leg.routeInfo.to.name,
+                distance: leg.routeInfo.distance
+            });
+            await Planet.upsert({
+                id: leg.routeInfo.from.id,
+                name: leg.routeInfo.from.name,
+            });
+            await Planet.upsert({
+                id: leg.routeInfo.to.id,
+                name: leg.routeInfo.to.name,
+            });
+
             for (const provider of leg.providers) {
+                await Company.upsert({
+                    id: provider.company.id,
+                    name: provider.company.name,
+                });
                 await Travel.upsert({
                     priceListId: data.id,
                     legId: leg.id,
-                    fromId: leg.routeInfo.from.id,
-                    fromName: leg.routeInfo.from.name,
-                    toId: leg.routeInfo.to.id,
-                    toName: leg.routeInfo.to.name,
-                    distance: leg.routeInfo.distance,
                     offerId: provider.id,
                     companyId: provider.company.id,
-                    companyName: provider.company.name,
                     price: provider.price,
                     flightStart: provider.flightStart,
                     flightEnd: provider.flightEnd,

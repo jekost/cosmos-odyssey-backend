@@ -12,6 +12,10 @@ const PriceList = require('./PriceList');
 const Travel = require('./Travel');
 const Reservation = require('./Reservation');
 
+const Company = require('./Company');
+const Planet = require('./Planet');
+const Leg = require('./Leg');
+
 let sequelize;
 if (config.use_env_variable) {
   sequelize = new Sequelize(process.env[config.use_env_variable], config);
@@ -41,11 +45,16 @@ Object.keys(db).forEach(modelName => {
   }
 });
 
-PriceList.hasMany(Travel, { foreignKey: 'priceListId', onDelete: 'CASCADE' });
-Travel.belongsTo(PriceList, { foreignKey: 'priceListId' });
-Reservation.belongsTo(PriceList, { foreignKey: 'oldestPriceListId' });
+Travel.belongsTo(PriceList, { foreignKey: 'priceListId', as: 'priceList' });
+PriceList.hasMany(Travel, { foreignKey: 'priceListId', as: 'travels' });
+Reservation.belongsTo(PriceList, { foreignKey: 'oldestPriceListId', as: 'priceList'  });
+Travel.belongsTo(Leg, { foreignKey: 'legId', as: 'leg' });
+Leg.hasMany(Travel, { foreignKey: 'legId', as: 'travels' });
+Travel.belongsTo(Company, { foreignKey: 'companyId', as: 'company' });
+Company.hasMany(Travel, { foreignKey: 'companyId', as: 'travels' });
+
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-module.exports = {db, PriceList, Travel, Reservation};
+module.exports = {db, PriceList, Travel, Reservation, Company, Planet, Leg};
