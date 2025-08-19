@@ -10,6 +10,8 @@ const Travel = sequelize.define('Travel', {
     flightStart: { type: DataTypes.DATE, allowNull: false },
     flightEnd: { type: DataTypes.DATE, allowNull: false },
     flightDuration: { type: DataTypes.FLOAT, allowNull: false }
+}, {
+  timestamps: true, // 👈 re-enable only here
 });
 
 module.exports = Travel;

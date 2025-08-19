@@ -65,26 +65,39 @@ router.get('/companies', async (req, res, next) => {
 
 // get travel prices whose pricelists are currently valid
 router.get('/travels/valid', async (req, res) => {
-    try {
-        const now = new Date();
+  try {
+    const now = new Date();
 
-        const validTravels = await Travel.findAll({
-            include: [
-                {
-                    model: PriceList,
-                    as: 'PriceList',
-                    where: { validUntil: { [Op.gt]: now } },
-                    attributes: []
-                }
-            ],
-            order: [['createdAt', 'DESC']],
-        });
+    const validTravels = await Travel.findAll({
+      include: [
+        {
+          model: Leg,
+          as: 'leg',
+          attributes: ['name', 'fromId', 'toId', 'distance'], // ✅ only these
+          required: false,
+        },
+        {
+          model: Company,
+          as: 'company',
+          attributes: ['name'], // ✅ only company name
+          required: false,
+        },
+        {
+          model: PriceList,
+          as: 'priceList',
+          where: { validUntil: { [Op.gt]: now } },
+          required: true,
+          attributes: ['validUntil'] // uncomment if you want to hide priceList fields
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
 
-        res.json(validTravels);
-    } catch (error) {
-        console.error("Error fetching valid travels:", error);
-        res.status(500).json({ error: 'Failed to fetch valid Travels' });
-    }
+    res.json(validTravels);
+  } catch (error) {
+    console.error("Error fetching valid travels:", error);
+    res.status(500).json({ error: 'Failed to fetch valid Travels' });
+  }
 });
 
 router.get('/pricelists', async (req, res, next) => {
@@ -184,6 +197,36 @@ router.get('/reservations/valid', async (req, res) => {
 
 router.get('/generated', (req, res) => {
     res.json(generator.generateTravels());
+});
+
+router.get("/legPlanets/:legId", async (req, res) => {
+  try {
+    const legId = req.params.legId;
+
+    // Fetch ALL legs (assuming your /api/legs returns an array)
+    const legsResponse = await fetch("http://localhost:5000/api/legs");
+    if (!legsResponse.ok) return res.status(500).json({ error: "Failed to fetch legs" });
+    const legs = await legsResponse.json();
+
+    // Find the leg with the specific id
+    const leg = legs.find(l => l.id === legId);
+    if (!leg) return res.status(404).json({ error: "Leg not found" });
+
+    // Fetch ALL planets
+    const planetsResponse = await fetch("http://localhost:5000/api/planets");
+    if (!planetsResponse.ok) return res.status(500).json({ error: "Failed to fetch planets" });
+    const planets = await planetsResponse.json();
+
+    // Find from and to planets
+    const fromPlanet = planets.find(p => p.id === leg.fromId);
+    const toPlanet = planets.find(p => p.id === leg.toId);
+
+    res.json([fromPlanet?.name, toPlanet?.name]);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 module.exports = router;
