@@ -64,6 +64,37 @@ router.get('/companies', async (req, res, next) => {
 });
 
 // get travel prices whose pricelists are currently valid
+const flattenObject = (obj, parentKey = '', res = {}) => {
+  if (obj === null || obj === undefined) {
+    res[parentKey] = obj;
+    return res;
+  }
+
+  for (let key in obj) {
+    if (!obj.hasOwnProperty(key)) continue;
+
+    const newKey = parentKey ? `${parentKey}_${key}` : key;
+    const value = obj[key];
+
+    if (Array.isArray(value)) {
+      // keep arrays intact, but flatten each object inside
+      res[newKey] = value.map((v, i) =>
+        typeof v === 'object' && v !== null
+          ? flattenObject(v, `${newKey}_${i}`, {})
+          : v
+      );
+    } else if (value && typeof value === 'object') {
+      // recurse into objects
+      flattenObject(value, newKey, res);
+    } else {
+      // primitives + null
+      res[newKey] = value;
+    }
+  }
+
+  return res;
+};
+
 router.get('/travels/valid', async (req, res) => {
   try {
     const now = new Date();
@@ -73,13 +104,27 @@ router.get('/travels/valid', async (req, res) => {
         {
           model: Leg,
           as: 'leg',
-          attributes: ['name', 'fromId', 'toId', 'distance'], // ✅ only these
+          attributes: ['distance'],
           required: false,
+          include: [
+            {
+              model: Planet,
+              as: 'planetFrom',
+              attributes: ['name'],
+              required: false
+            },
+            {
+              model: Planet,
+              as: 'planetTo',
+              attributes: ['name'],
+              required: false
+            }
+          ]
         },
         {
           model: Company,
           as: 'company',
-          attributes: ['name'], // ✅ only company name
+          attributes: ['name'],
           required: false,
         },
         {
@@ -87,13 +132,18 @@ router.get('/travels/valid', async (req, res) => {
           as: 'priceList',
           where: { validUntil: { [Op.gt]: now } },
           required: true,
-          attributes: ['validUntil'] // uncomment if you want to hide priceList fields
+          attributes: ['validUntil']
         },
       ],
       order: [['createdAt', 'DESC']],
     });
 
+    // flatten each object
+    const flattened = validTravels.map(t => flattenObject(t.get({ plain: true })));
+
+    //res.json(flattened);
     res.json(validTravels);
+
   } catch (error) {
     console.error("Error fetching valid travels:", error);
     res.status(500).json({ error: 'Failed to fetch valid Travels' });
@@ -107,6 +157,42 @@ router.get('/pricelists', async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+});
+
+router.get("/offersValid", async (req, res) => {
+  try {
+    const now = new Date();
+    const travels = await Travel.findAll({
+      include: [
+        { model: PriceList, as: 'priceList',
+          where: { validUntil: { [Op.gt]: now } },
+          required: true,
+          attributes: ['validUntil'] },
+        { model: Leg, as: 'leg',  include: [
+            { model: Planet, as: "planetFrom" },
+            { model: Planet, as: "planetTo" }
+          ] },
+        { model: Company, as: 'company', }
+      ]
+    });
+
+    const formatted = travels.map(travel => ({
+      offerId: travel.offerId,
+      price: travel.price,
+      flightStart: travel.flightStart,
+      flightEnd: travel.flightEnd,
+      flightDuration: travel.flightDuration,
+      validUntil: travel.priceList.validUntil,
+      planetFrom: travel.leg.planetFrom.name,
+      planetTo: travel.leg.planetTo.name,
+      distance: travel.leg.distance,
+      company: travel.company.name
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
 });
 
 router.get('/pricelists/valid', async (req, res) => {

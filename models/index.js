@@ -52,7 +52,8 @@ Travel.belongsTo(Leg, { foreignKey: 'legId', as: 'leg' });
 Leg.hasMany(Travel, { foreignKey: 'legId', as: 'travels' });
 Travel.belongsTo(Company, { foreignKey: 'companyId', as: 'company' });
 Company.hasMany(Travel, { foreignKey: 'companyId', as: 'travels' });
-
+Leg.belongsTo(Planet, { as: "planetFrom", foreignKey: "fromId" })
+Leg.belongsTo(Planet, { as: "planetTo", foreignKey: "toId" })
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
