@@ -188,6 +188,7 @@ router.get("/offersValid", async (req, res) => {
       distance: travel.leg.distance,
       company: travel.company.name
     }));
+    //test for commit
 
     res.json(formatted);
   } catch (err) {
