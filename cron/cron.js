@@ -39,13 +39,6 @@ async function fetchPrices(){
         });
 
         for (const leg of data.legs) {
-            await Leg.upsert({
-                id: leg.id,
-                fromId: leg.routeInfo.from.id,
-                toId: leg.routeInfo.to.id,
-                name: leg.routeInfo.from.name+"-"+leg.routeInfo.to.name,
-                distance: leg.routeInfo.distance
-            });
             await Planet.upsert({
                 id: leg.routeInfo.from.id,
                 name: leg.routeInfo.from.name,
@@ -53,6 +46,13 @@ async function fetchPrices(){
             await Planet.upsert({
                 id: leg.routeInfo.to.id,
                 name: leg.routeInfo.to.name,
+            });
+            await Leg.upsert({
+                id: leg.id,
+                fromId: leg.routeInfo.from.id,
+                toId: leg.routeInfo.to.id,
+                name: leg.routeInfo.from.name+"-"+leg.routeInfo.to.name,
+                distance: leg.routeInfo.distance
             });
 
             for (const provider of leg.providers) {

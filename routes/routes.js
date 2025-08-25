@@ -178,17 +178,17 @@ router.get("/offersValid", async (req, res) => {
 
     const formatted = travels.map(travel => ({
       offerId: travel.offerId,
+      priceListId: travel.priceListId,
       price: travel.price,
       flightStart: travel.flightStart,
       flightEnd: travel.flightEnd,
       flightDuration: travel.flightDuration,
-      validUntil: travel.priceList.validUntil,
       planetFrom: travel.leg.planetFrom.name,
       planetTo: travel.leg.planetTo.name,
       distance: travel.leg.distance,
-      company: travel.company.name
+      company: travel.company.name,
+      validUntil: travel.priceList.validUntil
     }));
-    //test for commit 2
 
     res.json(formatted);
   } catch (err) {

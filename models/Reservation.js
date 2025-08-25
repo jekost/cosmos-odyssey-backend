@@ -21,9 +21,9 @@ const Reservation = sequelize.define('Reservation', {
                     if (
                         typeof booking !== 'object' || 
                         !booking.offerId || 
-                        !booking.companyName || 
-                        !booking.fromName || 
-                        !booking.toName ||
+                        !booking.company || 
+                        !booking.planetFrom || 
+                        !booking.planetTo ||
                         !booking.amount
                     ) {
                         throw new Error('Each booking must have offerId, companyName, fromName, and toName and amount');
