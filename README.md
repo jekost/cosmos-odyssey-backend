@@ -32,9 +32,12 @@ The back end of a full-stack web application for seamless interplanetary travel 
 make sure an empty PostgreSQL database using the name `cosmos_odyssey` exists
   - `create database cosmos_odyssey;`
 - **Back End** `https://github.com/jekost/cosmos-odyssey-backend`:
+  - rename `config/config_example` to `config/config.json`
+  - rename `env_example` to `.env`
   - `npm install`
   - `npm start`
 - **Front End** `https://github.com/jekost/cosmos-odyssey-frontend`:
+  - rename `env_example` to `.env`
   - `npm install`
   - `npm run dev`
  
